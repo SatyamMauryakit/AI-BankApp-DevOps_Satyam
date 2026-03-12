@@ -16,8 +16,20 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
+     
+        script:
+         rm -rf ~/bankapp/docker-compose.yml
+      - name: Copy the docker-compose file
+        uses: appleboy/scp-action@v1
+        with:
+         host: ${{ secrets.EC2_SSH_HOST }}
+         username: ${{ secrets.EC2_SSH_USERNAME }}
+         key: ${{ secrets.EC2_SSH_KEY }}
+         source: docker-compose.yml
+         target: ~/bankapp
+        overwrite: true
 
-          script: |
+        script: |
             echo "Connected to EC2"
 
             # Update system
@@ -56,18 +68,6 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/bankapp:latest
 
             # Create docker-compose.yml if not exists
-            if [ ! -f docker-compose.yml ]; then
-              cat <<EOF > docker-compose.yml
-            version: "3.8"
-            services:
-              bankapp:
-                image: ${{ secrets.DOCKER_USERNAME }}/bankapp:latest
-                container_name: bankapp
-                ports:
-                  - "80:8080"
-                restart: always
-            EOF
-            fi
 
             # Run container
             docker compose down
