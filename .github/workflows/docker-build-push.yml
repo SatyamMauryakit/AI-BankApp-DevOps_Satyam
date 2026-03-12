@@ -1,18 +1,16 @@
-name: Docker Build and Push
+name: Docker Build Scan Push
 
 on:
-  workflow_call:
+  push:
+    branches: [main]
 
 jobs:
-  build-and-push:
+  docker:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -20,16 +18,25 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Generate Image Tag
+      - name: Set image tag
         id: vars
         run: echo "TAG=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v6
+      # Build image locally
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }} .
+
+      # Scan image with Trivy
+      - name: Scan Docker Image
+        uses: aquasecurity/trivy-action@master
         with:
-          context: .
-          file: ./Dockerfile.multistage
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }}
-            ${{ secrets.DOCKER_USERNAME }}/bankapp:latest
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }}
+          format: table
+          exit-code: 0
+          ignore-unfixed: true
+
+      # Push image after scan
+      - name: Push Docker Image
+        run: |
+          docker push ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }}
