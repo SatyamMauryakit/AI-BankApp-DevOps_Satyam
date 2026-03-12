@@ -63,14 +63,16 @@ jobs:
 
             cd ~/bankapp
 
-            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-            export DOCKER_TAG=${{ github.sha }}
-
-            
-
+            # Stop existing containers (ignore errors if not running)
             sudo docker compose down || true
-            docker image prune -a -f
-            sudo docker compose pull
-            sudo docker compose up -d --force-recreate --remove-orphans
+
+            # Clean up old images
+            sudo docker image prune -a -f
+
+            # Pull newest image from Docker Hub using the same username
+            sudo DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" docker compose pull
+
+            # Start containers with the freshly pulled image
+            sudo DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" docker compose up -d --force-recreate --remove-orphans
 
             echo "Deployment successful 🚀"
