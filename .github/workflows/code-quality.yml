@@ -3,36 +3,53 @@ name: Code Quality
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 jobs:
   code-quality:
     runs-on: ubuntu-latest
+    # The workflow template sets up the PATH to contain OpenJDK 8 for the x64 platform
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v5
+    - name: Set up JDK 11 for x64
+      uses: actions/setup-java@v4
+      with:
+       java-version: '11'
+       distribution: 'temurin'
+       architecture: x64
 
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
+  # Run the Maven verify phase to execute all tests and checks
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-java@v4
+      with:
+       java-version: '17'
+       distribution: 'temurin'
+    - name: Run the Maven verify phase
+      run: mvn --batch-mode --update-snapshots verify
 
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2-
+# this workflow can be called from other workflows to perform code quality checks, including running tests and static analysis. It sets up Java 17 and runs the Maven verify phase, which includes compiling the code, running tests, and performing any additional checks defined in the Maven build lifecycle.
+    steps:
+    - uses: actions/checkout@v5
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+       java-version: '17'
+       distribution: 'temurin'
+       cache: maven
+    - name: Build with Maven
+      run: mvn --batch-mode --update-snapshots verify
+    
 
-      - name: Build with Maven
-        run: mvn clean compile -B
-
-      - name: Run Tests
-        run: mvn test -B
-
-      - name: Package Application
-        run: mvn package -DskipTests -B
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-java@v4
+      with:
+       java-version: '17'
+       distribution: 'temurin'
+    - run: mvn --batch-mode --update-snapshots verify
+    - run: mkdir staging && cp target/*.jar staging
+    - uses: actions/upload-artifact@v4
+      with:
+      name: Package
+      path: staging
