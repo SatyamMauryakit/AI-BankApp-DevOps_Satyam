@@ -66,10 +66,11 @@ jobs:
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             export DOCKER_TAG=${{ github.sha }}
 
+            
+
             sudo docker compose down || true
+            docker image prune -a -f
             sudo docker compose pull
             sudo docker compose up -d --force-recreate --remove-orphans
-
-            sudo docker image prune -f
 
             echo "Deployment successful 🚀"
