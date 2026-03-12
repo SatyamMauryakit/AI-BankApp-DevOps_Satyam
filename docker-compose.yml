@@ -29,7 +29,7 @@ services:
       - bankapp-net
 
   bankapp:
-    build: .
+    image: ${DOCKER_USERNAME}/bankapp:${DOCKER_TAG}
     container_name: bankapp
     ports:
       - "8080:8080"
