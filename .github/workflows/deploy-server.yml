@@ -6,6 +6,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_TAG: ${{ github.sha }}
@@ -14,17 +15,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Prepare server
-      - name: SSH to Prod server & create app folder
+      # Prepare EC2 server
+      - name: SSH to server & prepare environment
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Installing required packages"
+            echo "Installing Docker & Compose"
+
             sudo apt-get update -y
-            sudo apt-get install -y docker.io docker-compose-v2
+            sudo apt-get install -y docker.io docker-compose-plugin
 
             sudo systemctl enable docker
             sudo systemctl start docker
@@ -34,29 +36,29 @@ jobs:
             mkdir -p ~/bankapp
             rm -f ~/bankapp/docker-compose.yml
 
-      # Copy docker-compose
-      - name: Copy docker-compose file
+      # Copy docker-compose.yml
+      - name: Copy docker-compose file to EC2
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "./docker-compose.yml"
+          source: "docker-compose.yml"
           target: "~/bankapp/"
           overwrite: true
 
-      # Run application
-      - name: SSH to Prod server & run the app
+      # Deploy container
+      - name: Deploy application
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            echo "Deploying app"
+            echo "Deploying application"
 
-            echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login \
-              --username ${{ secrets.DOCKER_USERNAME }} \
+            echo "${{ secrets.DOCKERHUB_PASSWORD }}" | sudo docker login \
+              --username "${{ secrets.DOCKER_USERNAME }}" \
               --password-stdin
 
             cd ~/bankapp
@@ -64,6 +66,10 @@ jobs:
             export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
             export DOCKER_TAG=${{ github.sha }}
 
-            docker compose down || true
-            docker compose pull
-            docker compose up -d --force-recreate
+            sudo docker compose down || true
+            sudo docker compose pull
+            sudo docker compose up -d --force-recreate --remove-orphans
+
+            sudo docker image prune -f
+
+            echo "Deployment successful 🚀"
