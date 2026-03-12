@@ -36,6 +36,12 @@ jobs:
           ignore-unfixed: true
 
       # Push image after scan
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }}
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ github.ref_name }}
+            ${{ secrets.DOCKER_USERNAME }}/bankapp:latest
+            ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ github.sha }}
