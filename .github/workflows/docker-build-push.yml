@@ -29,7 +29,11 @@ jobs:
       # Build image locally
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }} -f Dockerfile.multistage .
+           docker build \
+           -f Dockerfile.multistage \
+           -t ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ steps.vars.outputs.TAG }} \
+           -t ${{ secrets.DOCKER_USERNAME }}/bankapp:latest \
+           .
 
       # Scan image with Trivy
       - name: Scan Docker Image
