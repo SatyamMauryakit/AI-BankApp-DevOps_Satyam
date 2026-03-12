@@ -1,103 +1,23 @@
-# name: DevSecOps Pipeline
+name: DevSecOps Pipeline
 
-# on:
-#   push:
-#     branches: [main]
-#   pull_request:
-#     branches: [main]
-#   schedule:
-#     - cron: '0 2 * * 1'  # Weekly Monday 2 AM
+on:
+  push:
+    branches: [ main ]
 
-# jobs:
-#   dependency-scan:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Java 21
-#         uses: actions/setup-java@v4
-#         with:
-#           distribution: temurin
-#           java-version: '21'
-#           cache: maven
-
-#       - name: Run OWASP Dependency Check
-#         uses: dependency-check/Dependency-Check_Action@main
-#         with:
-#           project: bankapp
-#           path: .
-#           format: HTML,SARIF
-#           args: --failOnCVSS 9 --enableRetired
-#         continue-on-error: true
-
-#       - name: Upload Dependency Scan Report
-#         if: always()
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: dependency-check-report
-#           path: reports/
-#           retention-days: 30
-#           if-no-files-found: ignore
-
-#   docker-lint:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Run hadolint
-#         uses: hadolint/hadolint-action@v3.1.0
-#         with:
-#           dockerfile: Dockerfile.multistage
-#           failure-threshold: warning
-#         continue-on-error: true
-
-#   container-scan:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Set up Docker Buildx
-#         uses: docker/setup-buildx-action@v3
-
-#       - name: Build Docker image
-#         uses: docker/build-push-action@v6
-#         with:
-#           context: .
-#           file: ./Dockerfile.multistage
-#           push: false
-#           load: true
-#           tags: bankapp:scan
-#           cache-from: type=gha
-#           cache-to: type=gha,mode=max
-
-#       - name: Run Trivy vulnerability scanner
-#         uses: aquasecurity/trivy-action@master
-#         with:
-#           image-ref: bankapp:scan
-#           format: 'sarif'
-#           output: trivy-results.sarif
-#         continue-on-error: true
-
-#       - name: Upload Trivy results
-#         if: always()
-#         uses: github/codeql-action/upload-sarif@v3
-#         with:
-#           sarif_file: trivy-results.sarif
-#         continue-on-error: true
-
-#   secret-scan:
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-#         with:
-#           fetch-depth: 0
-
-#       - name: Gitleaks Scan
-#         uses: gitleaks/gitleaks-action@v2
-#         env:
-#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#         continue-on-error: true
+jobs:
+  code-quality:
+     uses: ./.github/workflows/code-quality.yml
+  dependency-scan:
+     uses: ./.github/workflows/dependency-scan.yml
+  secrets-scan:
+     uses: ./.github/workflows/secrets-scan.yml
+  docker-lint:
+     uses: ./.github/workflows/docker-lint.yml
+  docker-build-trivy-push:
+     needs: [code-quality, dependency-scan, secrets-scan, docker-lint]
+     uses: ./.github/workflows/docker-build-push.yml
+     secrets: inherit
+  deploy-server:
+     needs: docker-build-trivy-push
+     uses: ./.github/workflows/deploy-server.yml
+     secrets: inherit
