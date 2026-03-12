@@ -47,8 +47,8 @@ jobs:
       # Push image after scan
       - name: Push Docker Image
         run: |
-          push: true
-          tags: |
+        push: true
+        tags: |
             ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ github.ref_name }}
             ${{ secrets.DOCKER_USERNAME }}/bankapp:latest
             ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ github.sha }}
