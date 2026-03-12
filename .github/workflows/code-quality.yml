@@ -21,19 +21,4 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # # Build and run tests
-      # - name: Run Maven Verify
-      #   run: mvn --batch-mode --update-snapshots verify
-
-      # # Copy jar to staging folder
-      # - name: Prepare Artifact
-      #   run: |
-      #     mkdir staging
-      #     cp target/*.jar staging/
-
-      # # Upload build artifact
-      # - name: Upload Artifact
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: Package
-      #     path: staging
+      
