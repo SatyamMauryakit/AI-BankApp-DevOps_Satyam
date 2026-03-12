@@ -17,7 +17,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
      
-        script:
+        script: |
          rm -rf ~/bankapp/docker-compose.yml
       - name: Copy the docker-compose file
         uses: appleboy/scp-action@v1
