@@ -1,54 +1,69 @@
-# this will deploy the safe / secure / tested app to Prod server
 name: Deploy To Server
 
-on: 
-    workflow_call:
-
+on:
+  workflow_call:
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        env:
-            DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-            DOCKER_TAG: ${{ github.sha }}
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_TAG: ${{ github.sha }}
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: SSH to Prod server & create app folder
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USER }}
-                key: ${{ secrets.EC2_SSH_KEY }}
-                script: |
-                 echo "Installing required packages & folders"
-                 sudo apt-get update && sudo apt-get install docker.io docker-compose-v2 -y
-                 sudo usermod -aG docker $USER
-                 rm -rf ~/bankapp/docker-compose.yml
-                 mkdir -p ~/bankapp
+      # Prepare server
+      - name: SSH to Prod server & create app folder
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Installing required packages"
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io docker-compose-v2
 
-            - name: Copy the docker-compose file
-              uses: appleboy/scp-action@v1
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USER }}
-                key: ${{ secrets.EC2_SSH_KEY }}
-                source: docker-compose.yml
-                target: ~/bankapp
-                overwrite: true
-                
-            - name: SSH to Prod server & run the app
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USER }}
-                key: ${{ secrets.EC2_SSH_KEY }}
-                script: |
-                 echo "Running App"
-                 
-                 export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
-                 export DOCKER_TAG=${{ github.sha }}
-                 echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-                 cd ~/bankapp && docker compose down && docker compose up -d --build --force-recreate --pull always
+            sudo systemctl enable docker
+            sudo systemctl start docker
+
+            sudo usermod -aG docker $USER
+
+            mkdir -p ~/bankapp
+            rm -f ~/bankapp/docker-compose.yml
+
+      # Copy docker-compose
+      - name: Copy docker-compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "./docker-compose.yml"
+          target: "~/bankapp/"
+          overwrite: true
+
+      # Run application
+      - name: SSH to Prod server & run the app
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            echo "Deploying app"
+
+            echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login \
+              --username ${{ secrets.DOCKER_USERNAME }} \
+              --password-stdin
+
+            cd ~/bankapp
+
+            export DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+            export DOCKER_TAG=${{ github.sha }}
+
+            docker compose down || true
+            docker compose pull
+            docker compose up -d --force-recreate
