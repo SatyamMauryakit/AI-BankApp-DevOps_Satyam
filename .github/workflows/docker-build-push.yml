@@ -45,9 +45,8 @@ jobs:
           ignore-unfixed: true
 
       # Push image after scan
-      - name: Build and Push Docker Image
-        with:
-          context: .
+      - name: Push Docker Image
+        run: |
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/bankapp:${{ github.ref_name }}
