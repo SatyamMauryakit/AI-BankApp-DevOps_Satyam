@@ -19,7 +19,7 @@ jobs:
        architecture: x64
 
   # Run the Maven verify phase to execute all tests and checks
-    steps:
+    
     - uses: actions/checkout@v5
     - uses: actions/setup-java@v4
       with:
