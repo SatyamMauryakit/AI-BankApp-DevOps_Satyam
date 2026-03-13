@@ -74,6 +74,6 @@ jobs:
 
             # Start containers with the freshly pulled image
             sudo DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}" docker compose up -d --force-recreate --remove-orphans
-            docker exec -it bankapp-ollama ollama pull tinyllama
+            sudo docker exec -it bankapp-ollama ollama pull tinyllama
 
             echo "Deployment successful"
