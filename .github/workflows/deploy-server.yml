@@ -1,3 +1,4 @@
+# This workflow is designed to be called from other workflows, such as the CI workflow that builds and pushes the Docker image.
 name: Deploy To Server
 
 on:
