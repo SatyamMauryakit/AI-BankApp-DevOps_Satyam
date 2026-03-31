@@ -128,4 +128,3 @@ src/main/resources/
 | `docker` | Dockerfile, multistage build, Compose, AI chatbot     |
 | `main`   | Full DevOps pipeline (CI/CD, K8s, etc.)               |
 
-Each branch builds on the previous one. See `ROADMAP.md` for the full checklist.
